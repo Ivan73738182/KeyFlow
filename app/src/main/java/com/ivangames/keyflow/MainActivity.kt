@@ -1,5 +1,6 @@
 package com.ivangames.keyflow
 
+import android.content.Intent
 import android.os.Bundle
 import android.widget.ArrayAdapter
 import android.widget.AutoCompleteTextView
@@ -19,11 +20,17 @@ class MainActivity : AppCompatActivity() {
         val etApiKey = findViewById<TextInputEditText>(R.id.etApiKey)
         val btnSave = findViewById<MaterialButton>(R.id.btnSave)
 
-        // Список провайдеров
         val providers = arrayOf("DeepSeek", "OpenAI", "OpenRouter", "Anthropic (Claude)", "Другой")
         val adapter = ArrayAdapter(this, android.R.layout.simple_dropdown_item_1line, providers)
         actProvider.setAdapter(adapter)
-        actProvider.setText("DeepSeek", false) // По умолчанию
+        
+        // Если ключ уже есть, подставляем провайдера
+        val savedProvider = getSavedSettings().first
+        if (savedProvider != null) {
+            actProvider.setText(savedProvider, false)
+        } else {
+            actProvider.setText("DeepSeek", false)
+        }
 
         btnSave.setOnClickListener {
             val apiKey = etApiKey.text.toString().trim()
@@ -35,24 +42,27 @@ class MainActivity : AppCompatActivity() {
             }
             
             saveSettings(apiKey, provider)
-            Toast.makeText(this, "Ключ ($provider) сохранен безопасно!", Toast.LENGTH_LONG).show()
+            Toast.makeText(this, "Ключ ($provider) сохранен!", Toast.LENGTH_SHORT).show()
+            
+            // Переход в чат
+            startActivity(Intent(this, ChatActivity::class.java))
+            finish()
         }
     }
 
-    private fun saveSettings(apiKey: String, provider: String) {
-        val masterKey = MasterKey.Builder(this)
-            .setKeyScheme(MasterKey.KeyScheme.AES256_GCM)
-            .build()
-
-        val sharedPreferences = EncryptedSharedPreferences.create(
-            this,
-            "keyflow_secure_prefs",
-            masterKey,
+    private fun getSavedSettings(): Pair<String?, String?> {
+        val masterKey = MasterKey.Builder(this).setKeyScheme(MasterKey.KeyScheme.AES256_GCM).build()
+        val prefs = EncryptedSharedPreferences.create(this, "keyflow_secure_prefs", masterKey,
             EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
-            EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM
-        )
+            EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM)
+        return Pair(prefs.getString("provider", null), prefs.getString("api_key", null))
+    }
 
-        sharedPreferences.edit().putString("api_key", apiKey).apply()
-        sharedPreferences.edit().putString("provider", provider).apply()
+    private fun saveSettings(apiKey: String, provider: String) {
+        val masterKey = MasterKey.Builder(this).setKeyScheme(MasterKey.KeyScheme.AES256_GCM).build()
+        val prefs = EncryptedSharedPreferences.create(this, "keyflow_secure_prefs", masterKey,
+            EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
+            EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM)
+        prefs.edit().putString("api_key", apiKey).putString("provider", provider).apply()
     }
 }

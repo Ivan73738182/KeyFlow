@@ -8,3 +8,5 @@
 .externalNativeBuild
 .cxx
 local.properties
+*.keystore
+keyflow_base64.txt

@@ -1,8 +1,8 @@
-name: Build APK
+name: Build KeyFlow APK
 
 on:
   push:
-    branches: [ "main", "master" ]
+    branches: [ "main" ]
   workflow_dispatch:
 
 jobs:
@@ -16,12 +16,18 @@ jobs:
         java-version: '17'
         distribution: 'temurin'
         cache: gradle
+
+    - name: Decode Keystore
+      run: echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 -d > app/keyflow.keystore
+
     - name: Grant execute permission for gradlew
       run: chmod +x gradlew
-    - name: Build with Gradle
-      run: ./gradlew assembleDebug
+
+    - name: Build Release APK
+      run: ./gradlew assembleRelease -Pandroid.injected.signing.store.file=keyflow.keystore -Pandroid.injected.signing.store.password=${{ secrets.KEYSTORE_PASSWORD }} -Pandroid.injected.signing.key.alias=${{ secrets.KEY_ALIAS }} -Pandroid.injected.signing.key.password=${{ secrets.KEY_PASSWORD }}
+
     - name: Upload APK
       uses: actions/upload-artifact@v4
       with:
-        name: KeyFlow-Debug
-        path: app/build/outputs/apk/debug/app-debug.apk
+        name: KeyFlow-Release
+        path: app/build/outputs/apk/release/app-release.apk

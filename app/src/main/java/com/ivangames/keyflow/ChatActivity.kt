@@ -3,7 +3,6 @@ package com.ivangames.keyflow
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
-import android.widget.ArrayAdapter
 import android.widget.Button
 import android.widget.EditText
 import android.widget.Toast
@@ -14,15 +13,19 @@ import androidx.recyclerview.widget.RecyclerView
 import androidx.security.crypto.EncryptedSharedPreferences
 import androidx.security.crypto.MasterKey
 import com.google.android.material.button.MaterialButton
+import java.util.UUID
 
 class ChatActivity : AppCompatActivity() {
-    private val messagesList = mutableListOf<Message>()
+    private var messagesList = mutableListOf<Message>()
     private lateinit var adapter: ChatAdapter
     private lateinit var rvMessages: RecyclerView
     private lateinit var apiKey: String
     private lateinit var provider: String
-    private var selectedModel: String = "openai/gpt-4o-mini" // По умолчанию для OpenRouter
+    private var selectedModel: String = "openai/gpt-4o-mini"
     private val mainHandler = Handler(Looper.getMainLooper())
+    
+    private lateinit var currentChatId: String
+    private val allChats = mutableMapOf<String, MutableList<Message>>()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -32,17 +35,29 @@ class ChatActivity : AppCompatActivity() {
         val etMessage = findViewById<EditText>(R.id.etMessage)
         val btnSend = findViewById<Button>(R.id.btnSend)
         val btnModelSelect = findViewById<MaterialButton>(R.id.btnModelSelect)
+        val btnNewChat = findViewById<MaterialButton>(R.id.btnNewChat)
 
         loadSettings()
+        loadHistory()
 
         adapter = ChatAdapter(messagesList)
         rvMessages.layoutManager = LinearLayoutManager(this)
         rvMessages.adapter = adapter
 
-        messagesList.add(Message("Привет! Я KeyFlow ($provider). Модель: $selectedModel", false))
-        adapter.notifyItemInserted(messagesList.size - 1)
+        // Если чатов нет, создаем новый
+        if (allChats.isEmpty()) {
+            createNewChat()
+        } else {
+            currentChatId = allChats.keys.first()
+            messagesList = allChats[currentChatId] ?: mutableListOf()
+            adapter = ChatAdapter(messagesList)
+            rvMessages.adapter = adapter
+        }
 
-        // Выбор модели
+        btnNewChat.setOnClickListener {
+            createNewChat()
+        }
+
         btnModelSelect.setOnClickListener {
             showModelSelectionDialog(btnModelSelect)
         }
@@ -54,6 +69,9 @@ class ChatActivity : AppCompatActivity() {
                 adapter.notifyItemInserted(messagesList.size - 1)
                 etMessage.text.clear()
                 scrollToBottom()
+                
+                // Сохраняем сообщение пользователя
+                HistoryManager.saveChat(this, currentChatId, messagesList)
 
                 btnSend.isEnabled = false
                 messagesList.add(Message("⏳ Печатает...", false))
@@ -76,10 +94,30 @@ class ChatActivity : AppCompatActivity() {
                         adapter.notifyItemInserted(messagesList.size - 1)
                         scrollToBottom()
                         btnSend.isEnabled = true
+                        
+                        // Сохраняем ответ ИИ
+                        HistoryManager.saveChat(this@ChatActivity, currentChatId, messagesList)
                     }
                 }
             }
         }
+    }
+
+    private fun createNewChat() {
+        currentChatId = UUID.randomUUID().toString()
+        messagesList = mutableListOf()
+        messagesList.add(Message("Привет! Я KeyFlow ($provider). Модель: $selectedModel", false))
+        
+        adapter = ChatAdapter(messagesList)
+        rvMessages.adapter = adapter
+        
+        HistoryManager.saveChat(this, currentChatId, messagesList)
+        allChats[currentChatId] = messagesList
+    }
+
+    private fun loadHistory() {
+        val loaded = HistoryManager.loadAllChats(this)
+        allChats.putAll(loaded)
     }
 
     private fun showModelSelectionDialog(btnModelSelect: MaterialButton) {

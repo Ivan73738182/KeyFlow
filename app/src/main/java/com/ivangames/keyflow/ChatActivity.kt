@@ -3,14 +3,17 @@ package com.ivangames.keyflow
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
+import android.widget.ArrayAdapter
 import android.widget.Button
 import android.widget.EditText
 import android.widget.Toast
+import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import androidx.security.crypto.EncryptedSharedPreferences
 import androidx.security.crypto.MasterKey
+import com.google.android.material.button.MaterialButton
 
 class ChatActivity : AppCompatActivity() {
     private val messagesList = mutableListOf<Message>()
@@ -18,6 +21,7 @@ class ChatActivity : AppCompatActivity() {
     private lateinit var rvMessages: RecyclerView
     private lateinit var apiKey: String
     private lateinit var provider: String
+    private var selectedModel: String = "openai/gpt-4o-mini" // По умолчанию для OpenRouter
     private val mainHandler = Handler(Looper.getMainLooper())
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -27,6 +31,7 @@ class ChatActivity : AppCompatActivity() {
         rvMessages = findViewById(R.id.rvMessages)
         val etMessage = findViewById<EditText>(R.id.etMessage)
         val btnSend = findViewById<Button>(R.id.btnSend)
+        val btnModelSelect = findViewById<MaterialButton>(R.id.btnModelSelect)
 
         loadSettings()
 
@@ -34,34 +39,35 @@ class ChatActivity : AppCompatActivity() {
         rvMessages.layoutManager = LinearLayoutManager(this)
         rvMessages.adapter = adapter
 
-        messagesList.add(Message("Привет! Я KeyFlow ($provider). Чем могу помочь?", false))
+        messagesList.add(Message("Привет! Я KeyFlow ($provider). Модель: $selectedModel", false))
         adapter.notifyItemInserted(messagesList.size - 1)
+
+        // Выбор модели
+        btnModelSelect.setOnClickListener {
+            showModelSelectionDialog(btnModelSelect)
+        }
 
         btnSend.setOnClickListener {
             val text = etMessage.text.toString().trim()
             if (text.isNotEmpty()) {
-                // Добавляем сообщение пользователя
                 messagesList.add(Message(text, true))
                 adapter.notifyItemInserted(messagesList.size - 1)
                 etMessage.text.clear()
                 scrollToBottom()
 
-                // Показываем "Печатает..."
                 btnSend.isEnabled = false
                 messagesList.add(Message("⏳ Печатает...", false))
                 adapter.notifyItemInserted(messagesList.size - 1)
                 scrollToBottom()
 
-                ApiClient.sendMessage(provider, apiKey, text) { response, error ->
+                ApiClient.sendMessage(provider, selectedModel, apiKey, text) { response, error ->
                     mainHandler.post {
-                        // Удаляем "Печатает..."
                         val lastIndex = messagesList.size - 1
                         if (lastIndex >= 0) {
                             messagesList.removeAt(lastIndex)
                             adapter.notifyItemRemoved(lastIndex)
                         }
 
-                        // Добавляем ответ или ошибку
                         if (error != null) {
                             messagesList.add(Message("⚠️ $error", false))
                         } else {
@@ -74,6 +80,31 @@ class ChatActivity : AppCompatActivity() {
                 }
             }
         }
+    }
+
+    private fun showModelSelectionDialog(btnModelSelect: MaterialButton) {
+        val models = if (provider == "OpenRouter") {
+            arrayOf(
+                "openai/gpt-4o-mini",
+                "anthropic/claude-3.5-sonnet",
+                "meta-llama/llama-3-8b-instruct:free",
+                "google/gemini-flash-1.5"
+            )
+        } else if (provider == "DeepSeek") {
+            arrayOf("deepseek-chat", "deepseek-coder")
+        } else {
+            arrayOf("gpt-4o-mini", "gpt-4o")
+        }
+
+        val builder = AlertDialog.Builder(this, R.style.Theme_Material3_Dark_Dialog)
+        builder.setTitle("Выберите модель")
+        builder.setItems(models) { dialog, which ->
+            selectedModel = models[which]
+            btnModelSelect.text = selectedModel.split("/").last() + " ▾"
+            Toast.makeText(this, "Модель: $selectedModel", Toast.LENGTH_SHORT).show()
+            dialog.dismiss()
+        }
+        builder.show()
     }
 
     private fun scrollToBottom() {

@@ -1,9 +1,13 @@
 package com.ivangames.keyflow
 
+import android.content.ClipData
+import android.content.ClipboardManager
+import android.content.Context
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.TextView
+import android.widget.Toast
 import androidx.recyclerview.widget.RecyclerView
 
 class ChatAdapter(private val messages: List<Message>) : RecyclerView.Adapter<ChatAdapter.ViewHolder>() {
@@ -23,7 +27,19 @@ class ChatAdapter(private val messages: List<Message>) : RecyclerView.Adapter<Ch
     }
 
     override fun onBindViewHolder(holder: ViewHolder, position: Int) {
-        holder.tvMessage.text = messages[position].text
+        val message = messages[position]
+        holder.tvMessage.text = message.text
+
+        // Копирование по долгому нажатию (только для ИИ)
+        if (!message.isUser) {
+            holder.tvMessage.setOnLongClickListener {
+                val clipboard = it.context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+                val clip = ClipData.newPlainText("KeyFlow", message.text)
+                clipboard.setPrimaryClip(clip)
+                Toast.makeText(it.context, "Скопировано!", Toast.LENGTH_SHORT).show()
+                true
+            }
+        }
     }
 
     override fun getItemCount() = messages.size

@@ -15,6 +15,7 @@ import androidx.security.crypto.MasterKey
 class ChatActivity : AppCompatActivity() {
     private val messagesList = mutableListOf<Message>()
     private lateinit var adapter: ChatAdapter
+    private lateinit var rvMessages: RecyclerView
     private lateinit var apiKey: String
     private lateinit var provider: String
     private val mainHandler = Handler(Looper.getMainLooper())
@@ -23,7 +24,7 @@ class ChatActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_chat)
 
-        val rvMessages = findViewById<RecyclerView>(R.id.rvMessages)
+        rvMessages = findViewById(R.id.rvMessages)
         val etMessage = findViewById<EditText>(R.id.etMessage)
         val btnSend = findViewById<Button>(R.id.btnSend)
 
@@ -34,35 +35,51 @@ class ChatActivity : AppCompatActivity() {
         rvMessages.adapter = adapter
 
         messagesList.add(Message("Привет! Я KeyFlow ($provider). Чем могу помочь?", false))
-        adapter.notifyDataSetChanged()
+        adapter.notifyItemInserted(messagesList.size - 1)
 
         btnSend.setOnClickListener {
             val text = etMessage.text.toString().trim()
             if (text.isNotEmpty()) {
+                // Добавляем сообщение пользователя
                 messagesList.add(Message(text, true))
-                adapter.notifyDataSetChanged()
+                adapter.notifyItemInserted(messagesList.size - 1)
                 etMessage.text.clear()
-                rvMessages.scrollToPosition(messagesList.size - 1)
+                scrollToBottom()
 
-                // Блокируем кнопку и показываем, что идет загрузка
+                // Показываем "Печатает..."
                 btnSend.isEnabled = false
-                messagesList.add(Message("Печатает...", false))
-                adapter.notifyDataSetChanged()
-                rvMessages.scrollToPosition(messagesList.size - 1)
+                messagesList.add(Message("⏳ Печатает...", false))
+                adapter.notifyItemInserted(messagesList.size - 1)
+                scrollToBottom()
 
                 ApiClient.sendMessage(provider, apiKey, text) { response, error ->
                     mainHandler.post {
-                        messagesList.removeAt(messagesList.size - 1) // Удаляем "Печатает..."
+                        // Удаляем "Печатает..."
+                        val lastIndex = messagesList.size - 1
+                        if (lastIndex >= 0) {
+                            messagesList.removeAt(lastIndex)
+                            adapter.notifyItemRemoved(lastIndex)
+                        }
+
+                        // Добавляем ответ или ошибку
                         if (error != null) {
                             messagesList.add(Message("⚠️ $error", false))
                         } else {
                             messagesList.add(Message(response ?: "Пустой ответ", false))
                         }
-                        adapter.notifyDataSetChanged()
-                        rvMessages.scrollToPosition(messagesList.size - 1)
+                        adapter.notifyItemInserted(messagesList.size - 1)
+                        scrollToBottom()
                         btnSend.isEnabled = true
                     }
                 }
+            }
+        }
+    }
+
+    private fun scrollToBottom() {
+        rvMessages.post {
+            if (messagesList.isNotEmpty()) {
+                rvMessages.smoothScrollToPosition(messagesList.size - 1)
             }
         }
     }

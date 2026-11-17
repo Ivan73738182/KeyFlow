@@ -36,12 +36,19 @@ object ApiClient {
 
         val requestBody = jsonBody.toRequestBody("application/json".toMediaType())
 
-        val request = Request.Builder()
+        val requestBuilder = Request.Builder()
             .url(url)
             .addHeader("Authorization", "Bearer $apiKey")
             .addHeader("Content-Type", "application/json")
             .post(requestBody)
-            .build()
+
+        // Добавляем заголовки для OpenRouter, чтобы избежать блокировок
+        if (provider == "OpenRouter") {
+            requestBuilder.addHeader("HTTP-Referer", "https://github.com/Ivan73738182/KeyFlow")
+            requestBuilder.addHeader("X-Title", "KeyFlow")
+        }
+
+        val request = requestBuilder.build()
 
         client.newCall(request).enqueue(object : Callback {
             override fun onFailure(call: Call, e: IOException) {
@@ -51,7 +58,8 @@ object ApiClient {
             override fun onResponse(call: Call, response: Response) {
                 response.use {
                     if (!response.isSuccessful) {
-                        callback(null, "Ошибка API: ${response.code} ${response.message}")
+                        val errorBody = response.body?.string()
+                        callback(null, "Ошибка API: ${response.code} ${response.message}\n$errorBody")
                         return
                     }
                     val responseBody = response.body?.string()

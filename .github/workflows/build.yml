@@ -24,7 +24,7 @@ jobs:
       run: chmod +x gradlew
 
     - name: Build Release APK
-      run: ./gradlew assembleRelease -Pandroid.injected.signing.store.file=keyflow.keystore -Pandroid.injected.signing.store.password=${{ secrets.KEYSTORE_PASSWORD }} -Pandroid.injected.signing.key.alias=${{ secrets.KEY_ALIAS }} -Pandroid.injected.signing.key.password=${{ secrets.KEY_PASSWORD }}
+      run: ./gradlew assembleRelease -Pandroid.injected.signing.store.file=app/keyflow.keystore -Pandroid.injected.signing.store.password=${{ secrets.KEYSTORE_PASSWORD }} -Pandroid.injected.signing.key.alias=${{ secrets.KEY_ALIAS }} -Pandroid.injected.signing.key.password=${{ secrets.KEY_PASSWORD }}
 
     - name: Upload APK
       uses: actions/upload-artifact@v4

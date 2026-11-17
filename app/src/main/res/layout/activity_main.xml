@@ -28,16 +28,36 @@
         app:layout_constraintTop_toBottomOf="@id/tvTitle"
         app:layout_constraintStart_toStartOf="parent" />
 
+    <!-- Выбор провайдера -->
+    <com.google.android.material.textfield.TextInputLayout
+        android:id="@+id/tilProvider"
+        style="@style/Widget.Material3.TextInputLayout.OutlinedBox.ExposedDropdownMenu"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="32dp"
+        android:hint="Провайдер"
+        app:boxStrokeColor="#00E5FF"
+        app:hintTextColor="#00E5FF"
+        app:layout_constraintTop_toBottomOf="@id/tvSubtitle">
+
+        <AutoCompleteTextView
+            android:id="@+id/actProvider"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:textColor="#FFFFFF"
+            android:inputType="none" />
+    </com.google.android.material.textfield.TextInputLayout>
+
     <com.google.android.material.textfield.TextInputLayout
         android:id="@+id/tilApiKey"
         style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="48dp"
+        android:layout_marginTop="16dp"
         android:hint="API Key"
         app:boxStrokeColor="#00E5FF"
         app:hintTextColor="#00E5FF"
-        app:layout_constraintTop_toBottomOf="@id/tvSubtitle">
+        app:layout_constraintTop_toBottomOf="@id/tilProvider">
 
         <com.google.android.material.textfield.TextInputEditText
             android:id="@+id/etApiKey"

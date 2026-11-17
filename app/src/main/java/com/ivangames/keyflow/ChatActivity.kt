@@ -134,7 +134,8 @@ class ChatActivity : AppCompatActivity() {
             arrayOf("gpt-4o-mini", "gpt-4o")
         }
 
-        val builder = AlertDialog.Builder(this, R.style.Theme_Material3_Dark_Dialog)
+        // ИСПРАВЛЕНИЕ: Убрали R.style.Theme_Material3_Dark_Dialog
+        val builder = AlertDialog.Builder(this)
         builder.setTitle("Выберите модель")
         builder.setItems(models) { dialog, which ->
             selectedModel = models[which]

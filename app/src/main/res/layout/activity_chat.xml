@@ -25,6 +25,18 @@
             android:textSize="20sp"
             android:textStyle="bold" />
 
+        <!-- Кнопка Новый чат -->
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnNewChat"
+            style="@style/Widget.Material3.Button.TextButton"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:text="+"
+            android:textColor="#00E5FF"
+            android:textSize="28sp"
+            app:backgroundTint="@android:color/transparent" />
+
+        <!-- Кнопка Выбор модели -->
         <com.google.android.material.button.MaterialButton
             android:id="@+id/btnModelSelect"
             style="@style/Widget.Material3.Button.TextButton"
